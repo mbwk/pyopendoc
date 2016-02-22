@@ -64,10 +64,10 @@ class OpenDocument(object):
             for eafile in self._document.infolist():
                 fname = eafile.filename
                 if fname in self._open_files:
-                    savfile.writestr(fname, self._open_files[fname].to_bytes())
+                    memfile.writestr(fname, self._open_files[fname].to_bytes())
                 else:
                     file_data = self._document.read(fname)
-                    savfile.writestr(eafile, file_data)
+                    memfile.writestr(eafile, file_data)
         return f
 
     @property
@@ -134,13 +134,16 @@ class OpenSpreadsheetDocument(OpenDocument):
         rows = 0
         for row in sheet.findall("./table:table-row", NAMESPACES):
             if self.REPEAT_ROWS_STR in row.attrib:
-                skipped_rows = int(row.attrib[repeat_rows_str])
+                skipped_rows = int(row.attrib[self.REPEAT_ROWS_STR])
                 # TODO: accomodate inserting cells that are skipped
-                #if target_row < (row + skipped_rows):
-                #    raise NotImplementedError
-                #else:
-                #    rows += skipped_rows
-                rows += skipped_rows
+                if rows < target_row < (rows + skipped_rows):
+                    raise NotImplementedError
+                elif rows < target_row:
+                    rows += skipped_rows
+                    continue
+
+            if rows < target_row:
+                rows += 1
                 continue
 
             columns = 0
@@ -156,6 +159,7 @@ class OpenSpreadsheetDocument(OpenDocument):
     def set_cell(self, address, value=""):
         cell = self._get_cell_from_colrow(*self._get_colrow_from_address(address))
         cell.set("{%s}value" % NAMESPACES["office"], str(value))
+        list(cell)[0].text = str(value)
 
     def set_range(self, startaddress, values=[[]]):
         initial_column, initial_row = self._get_colrow_from_address(startaddress)
@@ -167,6 +171,7 @@ class OpenSpreadsheetDocument(OpenDocument):
                 col_no = initial_column + col_offset
                 cell = self._get_cell_from_colrow(col_no, row_no)
                 cell.set("{%s}value" % NAMESPACES["office"], str(value))
+                list(cell)[0].text = str(value)
                 col_offset += 1
             row_offset += 1
 
