@@ -23,6 +23,9 @@ class OpenDocument(object):
     def CONTENT_FILE(self):
         return "content.xml"
 
+    def get_content_file(self):
+        return self.get_file(self.CONTENT_FILE)
+
     def __init__(self, filepath=None):
         self._open_files = {}
         self._document = None
@@ -103,76 +106,5 @@ class OpenWriterDocument(OpenDocument):
                 vs.set("{%s}formula" % NAMESPACES["text"], "ooow:{}".format(value))
                 vs.set("{%s}string-value" % NAMESPACES["text"], "{}".format(value))
                 vs.text = value
-
-
-class OpenSpreadsheetDocument(OpenDocument):
-
-    REPEAT_ROWS_STR = "{%s}number-rows-repeated" % NAMESPACES["table"]
-    REPEAT_COLS_STR = "{%s}number-columns-repeated" % NAMESPACES["table"]
-
-    def _get_sheet(self, sheet_no, xmlf=None):
-        xml_file = xmlf if xmlf else self.get_file(self.CONTENT_FILE)
-        sheets = xml_file.root.findall(".//table:table", NAMESPACES)
-        try:
-            sheet = sheets[sheet_no]
-        except KeyError:
-            sheet = sheets[0]
-        return sheet
-
-    def _get_colrow_from_address(self, address="A1"):
-        offset = 65
-        addr = address.upper()
-
-        column = bytes(addr[0], 'utf8')[0] - offset
-        row = int(addr[1]) - 1
-
-        return (column, row)
-
-    def _get_cell_from_colrow(self, target_column, target_row, sheet_no=0, xmlf=None):
-        sheet = self._get_sheet(sheet_no, xmlf)
-
-        rows = 0
-        for row in sheet.findall("./table:table-row", NAMESPACES):
-            if self.REPEAT_ROWS_STR in row.attrib:
-                skipped_rows = int(row.attrib[self.REPEAT_ROWS_STR])
-                # TODO: accomodate inserting cells that are skipped
-                if rows < target_row < (rows + skipped_rows):
-                    raise NotImplementedError
-                elif rows < target_row:
-                    rows += skipped_rows
-                    continue
-
-            if rows < target_row:
-                rows += 1
-                continue
-
-            columns = 0
-            for cell in row.findall("./table:table-cell", NAMESPACES):
-                if rows is target_row and columns is target_column:
-                    return cell
-                columns += 1
-
-            rows += 1
-
-        raise IndexError
-
-    def set_cell(self, address, value=""):
-        cell = self._get_cell_from_colrow(*self._get_colrow_from_address(address))
-        cell.set("{%s}value" % NAMESPACES["office"], str(value))
-        list(cell)[0].text = str(value)
-
-    def set_range(self, startaddress, values=[[]]):
-        initial_column, initial_row = self._get_colrow_from_address(startaddress)
-        row_offset = 0
-        for row in values:
-            row_no = initial_row + row_offset
-            col_offset = 0
-            for value in row:
-                col_no = initial_column + col_offset
-                cell = self._get_cell_from_colrow(col_no, row_no)
-                cell.set("{%s}value" % NAMESPACES["office"], str(value))
-                list(cell)[0].text = str(value)
-                col_offset += 1
-            row_offset += 1
 
 

@@ -6,6 +6,6 @@ setup(name="pyopendoc",
     url="http://redapesolutions.com/",
     author="Red Ape Solutions Sdn Bhd",
     author_email="karl@redapesolutions.com",
-    packages=['pyopendoc'],
+    packages=['pyopendoc', 'test'],
     zip_safe=False)
 

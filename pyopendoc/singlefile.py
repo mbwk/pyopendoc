@@ -35,6 +35,9 @@ class SingleXMLFile(SingleFile):
     def to_bytes(self):
         return bytes(ElementTree.tostring(self.root))
 
+    def new_element(self, name="new", attributes={}):
+        return ElementTree.Element(name, attributes)
+
 
 class SingleImageFile(SingleFile):
     def __init__(self, filename, filebytes):
