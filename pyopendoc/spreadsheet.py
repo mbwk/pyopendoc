@@ -1,4 +1,5 @@
 import re
+import math
 
 from .opendocument import OpenDocument, NAMESPACES
 
@@ -15,6 +16,7 @@ class OpenSpreadsheetDocument(OpenDocument):
         super(OpenSpreadsheetDocument, self).__init__(filepath)
         self._open_sheets = {}
 
+
     def _get_sheet(self, sheet_no, xmlf=None):
         xml_file = xmlf if xmlf else self.get_file(self.CONTENT_FILE)
         sheets = xml_file.root.findall(".//table:table", NAMESPACES)
@@ -23,6 +25,7 @@ class OpenSpreadsheetDocument(OpenDocument):
         except KeyError:
             sheet = sheets[0]
         return sheet
+
 
     def _get_colrow_from_address(self, address="A1"):
         offset = 64
@@ -45,9 +48,8 @@ class OpenSpreadsheetDocument(OpenDocument):
 
         return (column, row)
 
-    def _get_address_from_colrow(self, column=0, row=0):
-        import math
 
+    def _get_address_from_colrow(self, column=0, row=0):
         offset = 64
         base = (ord('Z') - offset)
 
@@ -91,6 +93,7 @@ class OpenSpreadsheetDocument(OpenDocument):
         row_rep = str(row + 1)
 
         return "{}{}".format(column_rep, row_rep)
+
 
     def _seek_to_row(self, sheet_element, target_row, limit):
         rows = 0
@@ -155,6 +158,7 @@ class OpenSpreadsheetDocument(OpenDocument):
 
         raise IndexError
 
+
     def _seek_to_column(self, row_element, target_column):
         columns = 0
         cells_list = list(row_element)
@@ -201,6 +205,7 @@ class OpenSpreadsheetDocument(OpenDocument):
         raise IndexError # lets fail here, since the row code section is supposed to traverse straight
                          # towards the correct row
 
+
     def _get_cell_from_colrow(self, target_column, target_row, sheet_no=0, xmlf=None, limit="TOTAL"):
         sheet = self._get_sheet(sheet_no, xmlf)
 
@@ -208,10 +213,28 @@ class OpenSpreadsheetDocument(OpenDocument):
         return self._seek_to_column(row, target_column)
 
 
-    def set_cell(self, address, value=""):
-        cell = self._get_cell_from_colrow(*self._get_colrow_from_address(address))
-        cell.set("{%s}value" % NAMESPACES["office"], str(value))
+    def set_cell(self, value="", address="", column=None, row=None):
+        if address:
+            cell = self._get_cell_from_colrow(*self._get_colrow_from_address(address))
+        elif column is not None and row is not None:
+            cell = self._get_cell_from_colrow(column, row)
+        else:
+            raise IndexError
+
+        value_to_write = None
+        value_type = None
+
+        try:
+            value_to_write = float(value)
+            value_type = "float"
+        except ValueError:
+            value_to_write = str(value)
+            value_type = "string"
+
+        cell.set("{%s}value" % NAMESPACES["office"], str(value_to_write))
+        cell.set("{%s}value-type" % NAMESPACES["office"], value_type)
         list(cell)[0].text = str(value)
+
 
     def set_range(self, startaddress, values=[[]]):
         initial_column, initial_row = self._get_colrow_from_address(startaddress)
@@ -221,9 +244,7 @@ class OpenSpreadsheetDocument(OpenDocument):
             col_offset = 0
             for value in row:
                 col_no = initial_column + col_offset
-                cell = self._get_cell_from_colrow(col_no, row_no)
-                cell.set("{%s}value" % NAMESPACES["office"], str(value))
-                list(cell)[0].text = str(value)
+                self.set_cell(value=value, column=col_no, row=row_no)
                 col_offset += 1
             row_offset += 1
 
