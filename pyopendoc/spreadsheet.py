@@ -1,25 +1,26 @@
 import re
 import math
 
-from .opendocument import OpenDocument, NAMESPACES
+from .opendocument import OpenDocument
 
 class OpenSpreadsheetDocument(OpenDocument):
 
-    REPEAT_ROWS_STR = "{%s}number-rows-repeated" % NAMESPACES["table"]
-    REPEAT_COLS_STR = "{%s}number-columns-repeated" % NAMESPACES["table"]
-
-    ROW_TAG = "{%s}table-row" % NAMESPACES["table"]
-    COL_TAG = "{%s}table-cell" % NAMESPACES["table"]
-    TXT_TAG = "{%s}p" % NAMESPACES["text"]
 
     def __init__(self, filepath=None):
         super(OpenSpreadsheetDocument, self).__init__(filepath)
         self._open_sheets = {}
 
+        self.REPEAT_ROWS_STR = "{%s}number-rows-repeated" % self.NAMESPACES["table"]
+        self.REPEAT_COLS_STR = "{%s}number-columns-repeated" % self.NAMESPACES["table"]
+
+        self.ROW_TAG = "{%s}table-row" % self.NAMESPACES["table"]
+        self.COL_TAG = "{%s}table-cell" % self.NAMESPACES["table"]
+        self.TXT_TAG = "{%s}p" % self.NAMESPACES["text"]
+
 
     def _get_sheet(self, sheet_no, xmlf=None):
         xml_file = xmlf if xmlf else self.get_file(self.CONTENT_FILE)
-        sheets = xml_file.root.findall(".//table:table", NAMESPACES)
+        sheets = xml_file.root.findall(".//table:table", self.NAMESPACES)
         try:
             sheet = sheets[sheet_no]
         except KeyError:
@@ -133,7 +134,7 @@ class OpenSpreadsheetDocument(OpenDocument):
                         for i in range(0, len(row_cells)):
                             cell_attr = row_cells[i].attrib.copy()
                             new_cell = self.get_content_file().new_element(self.COL_TAG, cell_attr)
-                            new_row.insert(i, )
+                            new_row.insert(i, new_cell)
                         sheet_element.insert(current_index + i, new_row)
 
                     if to_be_created is skipped_rows:
@@ -215,11 +216,13 @@ class OpenSpreadsheetDocument(OpenDocument):
 
     def set_cell(self, value="", address="", column=None, row=None):
         if address:
-            cell = self._get_cell_from_colrow(*self._get_colrow_from_address(address))
+            col_no, row_no = self._get_colrow_from_address(address)
         elif column is not None and row is not None:
-            cell = self._get_cell_from_colrow(column, row)
+            col_no = column
+            row_no = row
         else:
             raise IndexError
+        cell = self._get_cell_from_colrow(col_no, row_no)
 
         value_to_write = None
         value_type = None
@@ -231,8 +234,9 @@ class OpenSpreadsheetDocument(OpenDocument):
             value_to_write = str(value)
             value_type = "string"
 
-        cell.set("{%s}value" % NAMESPACES["office"], str(value_to_write))
-        cell.set("{%s}value-type" % NAMESPACES["office"], value_type)
+        cell.set("{%s}value" % self.NAMESPACES["office"], str(value_to_write))
+        cell.set("{%s}value-type" % self.NAMESPACES["office"], value_type)
+        cell.set("{%s}value-type" % self.NAMESPACES["calcext"], value_type)
         list(cell)[0].text = str(value)
 
 
@@ -248,3 +252,8 @@ class OpenSpreadsheetDocument(OpenDocument):
                 col_offset += 1
             row_offset += 1
 
+    def update_formulae(self):
+        raise NotImplementedError
+
+    def align_columns(self):
+        raise NotImplementedError

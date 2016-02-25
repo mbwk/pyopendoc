@@ -51,7 +51,7 @@ class TestAddressToColumnsRows(unittest.TestCase):
         self.assertEqual(column, 702)
         self.assertEqual(row, 100)
 
-    def test_colrow_from_colrow_max_col(self):
+    def test_colrow_from_address_max_col(self):
         column, row = self.ods._get_colrow_from_address("AMJ2071")
         self.assertEqual(column, 1023)
         self.assertEqual(row, 2070)

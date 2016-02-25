@@ -1,16 +1,9 @@
 #!/usr/bin/env python3
 import zipfile
-import io
+import tempfile
+from xml.etree import ElementTree as ET
 
 from .singlefile import *
-
-NAMESPACES = {
-    "office": "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
-    "text": "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
-    "table": "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
-    "draw": "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0",
-    "xlink": "http://www.w3.org/1999/xlink",
-}
 
 
 #
@@ -18,6 +11,38 @@ NAMESPACES = {
 #
 
 class OpenDocument(object):
+
+
+    def _fixup_xmlns(self, elem, maps=None):
+        """
+        At present, writes to file a duplicate set of namespaces. The elements/attributes within
+        the file continue to use the old namespace references, but at least formulae seem to
+        work on loading the file in Libreoffice
+        """
+        raise NotImplementedError
+        if maps is None:
+            maps = [{}]
+
+        # Check for local overrides
+        xmlns = {}
+        xmlns_len = len(self.xmlns_str) + 1
+        for key, value in elem.items():
+            if key[:xmlns_len] == "{}:".format(self.xmlns_str):
+                xmlns[value] = key[xmlns_len:]
+        if xmlns:
+            uri_map = maps[-1].copy()
+            uri_map.update(xmlns)
+        else:
+            uri_map = maps[-1]
+
+        #fixup this element
+        fixup_element_prefixes(elem, uri_map, {})
+
+        # recursively process sub-elements
+        maps.append(uri_map)
+        for elem in elem:
+            self._fixup_xmlns(elem, maps)
+        maps.pop()
 
     @property
     def CONTENT_FILE(self):
@@ -30,12 +55,22 @@ class OpenDocument(object):
         self._open_files = {}
         self._document = None
         self.__sff = SingleFileFactory()
+        self.NAMESPACES = {}
 
         if filepath:
             self.open(filepath)
     
     def open(self, filepath):
         self._document = zipfile.ZipFile(filepath)
+
+        self.NAMESPACES = {
+            "office": "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
+            "text": "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
+            "table": "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+            "draw": "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0",
+            "calcext": "urn:org:documentfoundation:names:experimental:calc:xmlns:calcext:1.0",
+            "xlink": "http://www.w3.org/1999/xlink",
+        }
 
     def close(self):
         self._document.close()
@@ -61,9 +96,9 @@ class OpenDocument(object):
                     file_data = self._document.read(fname)
                     savfile.writestr(eafile, file_data)
 
-    def save_to_bytesio(self):
-        f = io.BytesIO()
-        with zipfile.ZipFile(f, mode="w") as memfile:
+    def save_to_bytes(self):
+        tmpfile = tempfile.TemporaryFile()
+        with zipfile.ZipFile(tmpfile, mode="w") as memfile:
             for eafile in self._document.infolist():
                 fname = eafile.filename
                 if fname in self._open_files:
@@ -71,7 +106,10 @@ class OpenDocument(object):
                 else:
                     file_data = self._document.read(fname)
                     memfile.writestr(eafile, file_data)
-        return f
+        tmpfile.seek(0)
+        outbytes = tmpfile.read()
+        tmpfile.close()
+        return outbytes
 
     @property
     def _files_list(self):
