@@ -96,9 +96,11 @@ class OpenSpreadsheetDocument(OpenDocument):
         return "{}{}".format(column_rep, row_rep)
 
 
-    def _seek_to_row(self, sheet_element, target_row, limit):
+    def _seek_to_row(self, sheet_element, target_row, limit, inserting_row_len=0):
         rows = 0
         non_rows = 0
+
+        max_row_len = inserting_row_len
 
         rows_list = list(sheet_element)
 
@@ -112,12 +114,21 @@ class OpenSpreadsheetDocument(OpenDocument):
                 non_rows += 1
                 continue
 
-            # If we run into the limit row, prepend before it
-            if bool(limit) and list(list(row)[0])[0].text.upper() == limit:
-                attr = rows_list[current_index - 1].attrib
-                sheet_element.insert(current_index, self.get_content_file().new_element(self.ROW_TAG, attr))
-                rows_list = list(sheet_element)
-                row = rows_list[current_index]
+            # If we run into the limit row, duplicate the last row and insert it right before the limit row
+            if bool(limit):
+                these = list(list(row)[0])
+                if not bool(these) or these[0].text == limit:
+                    attr = rows_list[current_index - 1].attrib.copy()
+                    new_row = self.get_content_file().new_element(self.ROW_TAG, attr)
+                    last_row_cells = list(rows_list[current_index - 1])
+                    for i in range(0, max_row_len if max_row_len else len(last_row_cells)):
+                        cell_attr = last_row_cells[i].attrib.copy()
+                        new_cell = self.get_content_file().new_element(self.COL_TAG, cell_attr)
+                        new_row.insert(i, new_cell)
+                    sheet_element.insert(current_index, new_row)
+                    rows_list = list(sheet_element)
+                    row = rows_list[current_index]
+
 
             # If we run into a row with the repeated rows attribute, and we need to dereference a row
             # within the repeat, partially expand it into real rows, at least up to the targetted row
@@ -131,7 +142,7 @@ class OpenSpreadsheetDocument(OpenDocument):
                     for i in range(0, to_be_created):
                         new_row = self.get_content_file().new_element(self.ROW_TAG, attr)
                         row_cells = list(row)
-                        for i in range(0, len(row_cells)):
+                        for i in range(0, max_row_len if max_row_len else len(row_cells)):
                             cell_attr = row_cells[i].attrib.copy()
                             new_cell = self.get_content_file().new_element(self.COL_TAG, cell_attr)
                             new_row.insert(i, new_cell)
@@ -167,8 +178,6 @@ class OpenSpreadsheetDocument(OpenDocument):
         if not cells_list:
             attr = {}
             new_cell = self.get_content_file().new_element(self.COL_TAG, attr)
-            new_cell.append(self.get_content_file().new_element(self.TXT_TAG))
-            list(new_cell)[0].text = "0"
             row_element.insert(0, new_cell)
             cells_list = list(row_element)
 
@@ -180,8 +189,6 @@ class OpenSpreadsheetDocument(OpenDocument):
                 del attr[self.REPEAT_COLS_STR]
                 for i in range(0, to_be_created):
                     new_cell = self.get_content_file().new_element(self.COL_TAG, attr)
-                    new_cell.append(self.get_content_file().new_element(self.TXT_TAG))
-                    list(new_cell)[0].text = "0"
                     row_element.insert(columns + i, new_cell)
                 row_element.remove(cell)
                 cells_list = list(row_element)
@@ -194,8 +201,6 @@ class OpenSpreadsheetDocument(OpenDocument):
         while columns <= target_column:
             attr = cell.attrib.copy()
             new_cell = self.get_content_file().new_element(self.COL_TAG, attr)
-            new_cell.append(self.get_content_file().new_element(self.TXT_TAG))
-            list(new_cell)[0].text = "0"
             row_element.insert(columns, new_cell)
             cells_list = list(row_element)
             cell = cells_list[columns]
@@ -207,14 +212,32 @@ class OpenSpreadsheetDocument(OpenDocument):
                          # towards the correct row
 
 
-    def _get_cell_from_colrow(self, target_column, target_row, sheet_no=0, xmlf=None, limit="TOTAL"):
+    def _get_cell_from_colrow(self, target_column, target_row, sheet_no=0, xmlf=None, limit="TOTAL", inserting_row_len=0):
         sheet = self._get_sheet(sheet_no, xmlf)
 
-        row = self._seek_to_row(sheet, target_row, limit)
+        row = self._seek_to_row(sheet, target_row, limit, inserting_row_len=inserting_row_len)
         return self._seek_to_column(row, target_column)
 
+    def elucidate_type(self, value):
+        the_type = type(value)
+        value_to_write = "-"
+        type_to_write = "string"
+        if the_type is int or the_type is float:
+            value_to_write = float(value)
+            type_to_write = "float"
+        #elif the_type is datetime.datetime:
+        #    value_to_write = ""
+        #    type_to_write = ""
+        #elif the_type is datetime.date:
+        #    value_to_write = ""
+        #    type_to_write = ""
+        else:
+            value_to_write = str(value)
+            type_to_write = "string"
 
-    def set_cell(self, value="", address="", column=None, row=None):
+        return (value_to_write, type_to_write)
+
+    def set_cell(self, value="", address="", column=None, row=None, inserting_row_len=0, sheet_no=0, limit="TOTAL"):
         if address:
             col_no, row_no = self._get_colrow_from_address(address)
         elif column is not None and row is not None:
@@ -222,25 +245,24 @@ class OpenSpreadsheetDocument(OpenDocument):
             row_no = row
         else:
             raise IndexError
-        cell = self._get_cell_from_colrow(col_no, row_no)
+        cell = self._get_cell_from_colrow(col_no, row_no, inserting_row_len=inserting_row_len, sheet_no=sheet_no, limit=limit)
 
-        value_to_write = None
-        value_type = None
-
-        try:
-            value_to_write = float(value)
-            value_type = "float"
-        except ValueError:
-            value_to_write = str(value)
-            value_type = "string"
+        #value_to_write = None
+        #value_type = None
+        value_to_write, value_type = self.elucidate_type(value)
 
         cell.set("{%s}value" % self.NAMESPACES["office"], str(value_to_write))
         cell.set("{%s}value-type" % self.NAMESPACES["office"], value_type)
         cell.set("{%s}value-type" % self.NAMESPACES["calcext"], value_type)
-        list(cell)[0].text = str(value)
+        try:
+            list(cell)[0].text = str(value)
+        except IndexError:
+            cell.append(self.get_content_file().new_element(self.TXT_TAG))
+            list(cell)[0].text = str(value)
 
 
-    def set_range(self, startaddress, values=[[]]):
+
+    def set_range(self, startaddress, values=[[]], sheet_no=0, limit="TOTAL"):
         initial_column, initial_row = self._get_colrow_from_address(startaddress)
         row_offset = 0
         for row in values:
@@ -248,7 +270,7 @@ class OpenSpreadsheetDocument(OpenDocument):
             col_offset = 0
             for value in row:
                 col_no = initial_column + col_offset
-                self.set_cell(value=value, column=col_no, row=row_no)
+                self.set_cell(value=value, column=col_no, row=row_no, inserting_row_len=len(row), sheet_no=sheet_no, limit=limit)
                 col_offset += 1
             row_offset += 1
 
