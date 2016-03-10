@@ -131,18 +131,4 @@ class OpenDocument(object):
         self._open_files[filename] = imagebytes
 
 
-class OpenWriterDocument(OpenDocument):
-
-    def set_variable(self, variable_name, value, target=None):
-        target_file = target if target else self.CONTENT_FILE
-        xml_file = self.get_file(target)
-        if xml_file.filetype != "XML":
-            raise TypeError
-        
-        for vs in xml_file.root.findall(".//text:variable-set", NAMESPACES):
-            if varname == variable_name:
-                vs.set("{%s}formula" % NAMESPACES["text"], "ooow:{}".format(value))
-                vs.set("{%s}string-value" % NAMESPACES["text"], "{}".format(value))
-                vs.text = value
-
 
