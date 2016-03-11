@@ -35,5 +35,5 @@ class OpenWriterDocument(OpenDocument):
                 if valtype == "float":
                     vs.set("{%s}formula" % self.NAMESPACES["text"], "ooow:{}".format(value))
                     vs.set("{%s}value" % self.NAMESPACES["text"], "{}".format(value))
-                vs.text = value # needed for strings...
+                vs.text = str(value) # needed for strings...
 

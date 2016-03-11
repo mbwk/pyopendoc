@@ -128,7 +128,8 @@ class OpenDocument(object):
 
     def replace_image(self, imagename, imagebytes):
         filename = self.get_image_filename(imagename)
-        self._open_files[filename] = imagebytes
+        single_file = self.__sff.load_file(filename, imagebytes)
+        self._open_files[filename] = single_file
 
 
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from xml.etree import ElementTree as ET
 import tempfile
+import imghdr
 
 #
 # Component Files
@@ -10,7 +11,7 @@ class SingleFileFactory():
     def load_file(self, filename, filebytes):
         if filename.endswith(".xml"):
             return SingleXMLFile(filename, filebytes)
-        if imghdr.what(filename=None, h=filebytes):
+        if imghdr.what(file=None, h=filebytes):
             return SingleImageFile(filename, filebytes)
         return SingleUnknownFile(filename, filebytes)
 
