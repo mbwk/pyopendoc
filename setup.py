@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name="pyopendoc",
-    version="0.1",
+    version="0.2",
     description="Open Office Document manipulation module",
     url="http://redapesolutions.com/",
     author="Red Ape Solutions Sdn Bhd",
