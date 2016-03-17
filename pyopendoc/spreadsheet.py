@@ -121,8 +121,12 @@ class OpenSpreadsheetDocument(OpenDocument):
                     attr = rows_list[current_index - 1].attrib.copy()
                     new_row = self.get_content_file().new_element(self.ROW_TAG, attr)
                     last_row_cells = list(rows_list[current_index - 1])
-                    for i in range(0, max_row_len if max_row_len else len(last_row_cells)):
-                        cell_attr = last_row_cells[i].attrib.copy()
+                    last_row_len = len(last_row_cells)
+                    for i in range(0, max_row_len if max_row_len else last_row_len):
+                        if i >= last_row_len:
+                            cell_attr = last_row_cells[last_row_len - 1].attrib.copy()
+                        else:
+                            cell_attr = last_row_cells[i].attrib.copy()
                         new_cell = self.get_content_file().new_element(self.COL_TAG, cell_attr)
                         new_row.insert(i, new_cell)
                     sheet_element.insert(current_index, new_row)
