@@ -95,7 +95,6 @@ class OpenSpreadsheetDocument(OpenDocument):
 
         return "{}{}".format(column_rep, row_rep)
 
-
     def _seek_to_row(self, sheet_element, target_row, limit, inserting_row_len=0):
         rows = 0
         non_rows = 0
@@ -222,6 +221,21 @@ class OpenSpreadsheetDocument(OpenDocument):
         row = self._seek_to_row(sheet, target_row, limit, inserting_row_len=inserting_row_len)
         return self._seek_to_column(row, target_column)
 
+    def _batch_insert_cells(self, values, start_column, start_row, sheet_no=0, xmlf=None, limit="TOTAL"):
+        sheet = self._get_sheet(sheet_no, xmlf)
+
+        row_count = len(values)
+        column_count = len(values[0])
+
+        for i in range(0, row_count):
+            y = i + start_row
+            row_element = self._seek_to_row(sheet, y, limit, inserting_row_len=len(values[i]))
+            for j in range(0, column_count):
+                x = j + start_column
+                cell = self._seek_to_column(row_element, x)
+                self.set_cell_values(cell, values[i][j])
+
+
     def elucidate_type(self, value):
         the_type = type(value)
         value_to_write = "-"
@@ -229,12 +243,6 @@ class OpenSpreadsheetDocument(OpenDocument):
         if the_type is int or the_type is float:
             value_to_write = float(value)
             type_to_write = "float"
-        #elif the_type is datetime.datetime:
-        #    value_to_write = ""
-        #    type_to_write = ""
-        #elif the_type is datetime.date:
-        #    value_to_write = ""
-        #    type_to_write = ""
         else:
             value_to_write = str(value)
             type_to_write = "string"
@@ -250,9 +258,9 @@ class OpenSpreadsheetDocument(OpenDocument):
         else:
             raise IndexError
         cell = self._get_cell_from_colrow(col_no, row_no, inserting_row_len=inserting_row_len, sheet_no=sheet_no, limit=limit)
+        self.set_cell_values(self, cell, value)
 
-        #value_to_write = None
-        #value_type = None
+    def set_cell_values(self, cell, value=""):
         value_to_write, value_type = self.elucidate_type(value)
 
         cell.set("{%s}value" % self.NAMESPACES["office"], str(value_to_write))
@@ -265,18 +273,9 @@ class OpenSpreadsheetDocument(OpenDocument):
             list(cell)[0].text = str(value)
 
 
-
     def set_range(self, startaddress, values=[[]], sheet_no=0, limit="TOTAL"):
         initial_column, initial_row = self._get_colrow_from_address(startaddress)
-        row_offset = 0
-        for row in values:
-            row_no = initial_row + row_offset
-            col_offset = 0
-            for value in row:
-                col_no = initial_column + col_offset
-                self.set_cell(value=value, column=col_no, row=row_no, inserting_row_len=len(row), sheet_no=sheet_no, limit=limit)
-                col_offset += 1
-            row_offset += 1
+        self._batch_insert_cells(values=values, start_column=initial_column, start_row=initial_row, sheet_no=sheet_no, limit=limit)
 
     def update_formulae(self):
         raise NotImplementedError
