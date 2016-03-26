@@ -225,11 +225,11 @@ class OpenSpreadsheetDocument(OpenDocument):
         sheet = self._get_sheet(sheet_no, xmlf)
 
         row_count = len(values)
-        column_count = len(values[0])
 
         for i in range(0, row_count):
             y = i + start_row
             row_element = self._seek_to_row(sheet, y, limit, inserting_row_len=len(values[i]))
+            column_count = len(values[i])
             for j in range(0, column_count):
                 x = j + start_column
                 cell = self._seek_to_column(row_element, x)
