@@ -73,3 +73,8 @@ class OpenWriterDocument(OpenDocument):
             cell['p'].append(span)
 
         span.text = value
+
+    def clone_table_row(self, table_name, row_index, new_row_index, target=None):
+        target_file = target if target else self.CONTENT_FILE
+        table = self._get_table(table_name, target_file)
+        return table.clone_row(row_index, new_row_index)

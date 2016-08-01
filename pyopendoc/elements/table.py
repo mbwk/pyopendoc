@@ -1,4 +1,5 @@
 from .element import IndexableElement, Element
+import copy
 
 class Cell(Element):
     def write(self, content):
@@ -18,3 +19,10 @@ class Table(IndexableElement):
 
     def _get_child_selector(self):
         return './table:table-row'
+
+    def clone_row(self, row_index, new_row_index):
+        # Let it raise if doesn't exist
+        row = self[row_index]
+        new_row = copy.deepcopy(row)
+        self.insert(new_row_index, new_row)
+        return new_row
