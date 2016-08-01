@@ -4,7 +4,7 @@ import tempfile
 from xml.etree import ElementTree as ET
 
 from .singlefile import *
-
+from .namespaces import NAMESPACES
 
 #
 # Open Document Files
@@ -59,18 +59,11 @@ class OpenDocument(object):
 
         if filepath:
             self.open(filepath)
-    
+
     def open(self, filepath):
         self._document = zipfile.ZipFile(filepath)
 
-        self.NAMESPACES = {
-            "office": "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
-            "text": "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
-            "table": "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
-            "draw": "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0",
-            "calcext": "urn:org:documentfoundation:names:experimental:calc:xmlns:calcext:1.0",
-            "xlink": "http://www.w3.org/1999/xlink",
-        }
+        self.NAMESPACES = NAMESPACES
 
     def close(self):
         self._document.close()
@@ -130,6 +123,3 @@ class OpenDocument(object):
         filename = self.get_image_filename(imagename)
         single_file = self.__sff.load_file(filename, imagebytes)
         self._open_files[filename] = single_file
-
-
-
