@@ -1,0 +1,2 @@
+class ElementDoesNotExist(Exception):
+    pass
