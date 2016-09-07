@@ -60,7 +60,7 @@ class OpenWriterDocument(OpenDocument):
 
         # Grab the corresponding cell
         try:
-            cell = table[column][row]
+            cell = table[row][column]
         except IndexError:
             raise ElementDoesNotExist('Corresponding cell does not exist')
 
