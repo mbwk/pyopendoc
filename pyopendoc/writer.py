@@ -7,10 +7,11 @@ from .elements import Table, Span
 from .exceptions import ElementDoesNotExist
 
 class OpenWriterDocument(OpenDocument):
+    def __init__(self, filepath=None):
+        super(OpenWriterDocument, self).__init__(filepath=filepath)
+        self._tables = {}
 
-    _tables = {}
-
-    def get_image_filename(self, image_name : str, target=None):
+    def get_image_filename(self, image_name: str, target=None):
         target_file = target if target else self.CONTENT_FILE
         xml_file = self.get_file(target_file)
         if xml_file.filetype != "XML":
