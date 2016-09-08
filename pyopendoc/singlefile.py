@@ -49,13 +49,11 @@ class SingleXMLFile(SingleFile):
                 ns_map = []
 
         tf.close()
-        #return ET.ElementTree(root)
-        return root
+        return ET.ElementTree(root)
 
     def __init__(self, filename, filebytes):
         self.filename = filename
-        self.root = self._parse(filebytes)
-        #self.root = ET.fromstring(filebytes)
+        self.root = ET.fromstring(filebytes)
 
     @property
     def filetype(self):
@@ -92,4 +90,3 @@ class SingleUnknownFile(SingleFile):
 
     def to_bytes(self):
         return self.filebytes
-
