@@ -26,6 +26,9 @@ class OpenWriterDocument(OpenDocument):
                     return filename
         raise KeyError("Could not find an image with that name")
 
+    def set_variables(self, **kwargs):
+        for k,v in kwargs.items():
+            self.set_variable(k, v)
 
     def set_variable(self, variable_name, value, target=None):
         target_file = target if target else self.CONTENT_FILE
