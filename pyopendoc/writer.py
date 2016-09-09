@@ -5,6 +5,9 @@ from .opendocument import OpenDocument
 from .singlefile import *
 from .elements import Table, Span
 from .exceptions import ElementDoesNotExist
+import logging
+
+logger = logging.getLogger('pyopendoc')
 
 class OpenWriterDocument(OpenDocument):
     def __init__(self, filepath=None):
@@ -40,10 +43,13 @@ class OpenWriterDocument(OpenDocument):
             varname = vs.get("{%s}name" % self.NAMESPACES["text"])
             if varname == variable_name:
                 valtype = vs.get("{%s}value-type" % self.NAMESPACES["office"])
+                logger.debug('Found variable "{}". Data is of type {}'.format(variable_name, valtype))
                 if valtype == "float":
                     vs.set("{%s}formula" % self.NAMESPACES["text"], "ooow:{}".format(value))
                     vs.set("{%s}value" % self.NAMESPACES["text"], "{}".format(value))
                 vs.text = str(value) # needed for strings...
+            else:
+                logger.debug('Found variable "{}"; not matching requested "{}". Ignoring'.format(varname, variable_name))
 
     def _get_table(self, table_name, target_file):
         xml_file = self.get_file(target_file)
@@ -56,6 +62,7 @@ class OpenWriterDocument(OpenDocument):
         """
         Use refresh to reload the table from the XML otherwise it uses a "cached" value
         """
+        logger.info('Setting value to "{value}" for table {table}, row {row}, column {column}'.format(value=value, table=table_name, row=row, column=column))
         table = self._tables.get(table_name)
         if refresh or not table:
             target_file = target if target else self.CONTENT_FILE
@@ -72,7 +79,9 @@ class OpenWriterDocument(OpenDocument):
         # TODO Should we assume that we have a "p"?
         try:
             span = cell['p']['span']
+            logger.debug('Span found in cell {} {} for table {}'.format(row, column, table_name))
         except ElementDoesNotExist:
+            logger.debug('Span not found in cell {} {} for table {}. Creating new.'.format(row, column, table_name))
             span = Span.create()
             cell['p'].append(span)
 
