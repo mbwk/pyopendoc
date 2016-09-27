@@ -2,6 +2,7 @@
 from xml.etree import ElementTree as ET
 import tempfile
 import imghdr
+from .namespaces import NAMESPACES
 
 #
 # Component Files
@@ -60,7 +61,15 @@ class SingleXMLFile(SingleFile):
         return "XML"
 
     def to_bytes(self):
-        return bytes(ET.tostring(self.root))
+        content = ET.tostring(self.root).decode()
+
+        before1, delimiter1, after1 = content.partition('<office:document-content')
+        before2, delimiter2, after2 = after1.partition('office:version="1.2">')
+
+        ns = ' '.join(['xmlns:{}="{}"'.format(x,y) for x,y in NAMESPACES.items()])
+
+        content = "{} {} {} {} {}".format(before1, delimiter1, ns, delimiter2, after2)
+        return bytes(content.encode())
 
     def new_element(self, name="new", attributes={}):
         return ET.Element(name, attributes)
