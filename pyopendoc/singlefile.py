@@ -64,7 +64,7 @@ class SingleXMLFile(SingleFile):
         content = ET.tostring(self.root).decode()
 
         before1, delimiter1, after1 = content.partition('<office:document-content')
-        before2, delimiter2, after2 = after1.partition('office:version="1.2">')
+        before2, delimiter2, after2 = after1.partition('office:version="')
 
         ns = ' '.join(['xmlns:{}="{}"'.format(x,y) for x,y in NAMESPACES.items()])
 
