@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import zipfile
 import tempfile
+from io import (BytesIO)
+
 from xml.etree import ElementTree as ET
 
 from .singlefile import *
@@ -54,6 +56,7 @@ class OpenDocument(object):
     def __init__(self, filepath=None):
         self._open_files = {}
         self._document = None
+        self._filename = ""
         self.__sff = SingleFileFactory()
         self.NAMESPACES = {}
 
@@ -61,7 +64,10 @@ class OpenDocument(object):
             self.open(filepath)
 
     def open(self, filepath):
-        self._document = zipfile.ZipFile(filepath)
+        with open(filepath, "rb") as original_file:
+            filelike = BytesIO(original_file.read())
+        self._document = zipfile.ZipFile(filelike)
+        self._filename = filepath
 
         self.NAMESPACES = NAMESPACES
 
@@ -80,7 +86,7 @@ class OpenDocument(object):
         self.__doc_file = fileobj
 
     def save(self, to=None):
-        with zipfile.ZipFile(to if to else self._document.filename, mode="w") as savfile:
+        with zipfile.ZipFile(to if to else self._filename, mode="w") as savfile:
             for eafile in self._document.infolist():
                 fname = eafile.filename
                 if fname in self._open_files:

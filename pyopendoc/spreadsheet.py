@@ -258,7 +258,7 @@ class OpenSpreadsheetDocument(OpenDocument):
         else:
             raise IndexError
         cell = self._get_cell_from_colrow(col_no, row_no, inserting_row_len=inserting_row_len, sheet_no=sheet_no, limit=limit)
-        self.set_cell_values(self, cell, value)
+        self.set_cell_values(cell, value)
 
     def set_cell_values(self, cell, value=""):
         value_to_write, value_type = self.elucidate_type(value)
