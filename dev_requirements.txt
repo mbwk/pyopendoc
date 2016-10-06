@@ -1,0 +1,5 @@
+-r requirements.txt
+ipython>=4.1.0
+bpython>=0.15
+ipdb==0.7
+
