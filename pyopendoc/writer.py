@@ -95,6 +95,7 @@ class OpenWriterDocument(OpenDocument):
                         raise ValueError('Value expected to be a string')
                     span = df.find(".//text:span", self.NAMESPACES)
                     span.text = value
+                return "Frame moved to {}{},{}{}".format(x_value, unit, y_value, unit)
 
     def clone_table_row(self, table_name, row_index, new_row_index, target=None):
         target_file = target if target else self.CONTENT_FILE
