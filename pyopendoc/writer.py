@@ -46,7 +46,7 @@ class OpenWriterDocument(OpenDocument):
         xml_file = self.get_file(target_file)
         table = xml_file.root.find('.//table:table[@table:name="{}"]'.format(table_name), self.NAMESPACES)
         if table is None:
-            raise ElementDoesNotExist('Table with name {} does not exist')
+            raise ElementDoesNotExist('Table with name %s does not exist' % table_name)
         return Table(table)
 
     def write_to_table(self, table_name, column, row, value, refresh=False, target=None):
